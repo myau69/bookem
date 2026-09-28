@@ -1,0 +1,6 @@
+.DS_Store
+/guide
+GUIDE.md
+*.env
+bin/
+coverage.out
