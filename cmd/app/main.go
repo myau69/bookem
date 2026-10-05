@@ -9,10 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/myau69/bookem/internal/bootstrap"
-	"github.com/myau69/bookem/internal/models"
 	"github.com/myau69/bookem/internal/repository/postgres"
+	"github.com/myau69/bookem/internal/service"
 )
 
 func main() {
@@ -37,19 +36,16 @@ func run() error {
 		_ = db.Close()
 	}()
 	repo := postgres.NewRoomsRepository(db)
-	capacity := 8
-	room, err := models.NewRoom(uuid.New(), "Alpha", nil, &capacity, time.Now())
-	if err != nil {
-		return err
-	}
+	svc := service.NewRoomService(repo, time.Now)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	saved, err := repo.Create(ctx, room)
+	capacity := 8
+	room, err := svc.Create(ctx, "Alpha", nil, &capacity)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Сохранена комната:", saved.ID, saved.Name)
-	rooms, err := repo.List(ctx)
+	fmt.Println("Сохранена комната:", room.ID, room.Name)
+	rooms, err := svc.List(ctx)
 	if err != nil {
 		return err
 	}
