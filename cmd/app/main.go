@@ -1,15 +1,15 @@
 package main
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/myau69/bookem/internal/bootstrap"
+	"github.com/myau69/bookem/internal/controllers"
 	"github.com/myau69/bookem/internal/repository/postgres"
 	"github.com/myau69/bookem/internal/service"
 )
@@ -37,18 +37,16 @@ func run() error {
 	}()
 	repo := postgres.NewRoomsRepository(db)
 	svc := service.NewRoomService(repo, time.Now)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	capacity := 8
-	room, err := svc.Create(ctx, "Alpha", nil, &capacity)
-	if err != nil {
+	handler := controllers.NewRoomsHandler(svc)
+	router := controllers.NewRouter(controllers.Handlers{Rooms: handler})
+	server := &http.Server{
+		Addr:              ":8080",
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	log.Println("HTTP server listening on :8080")
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
-	fmt.Println("Сохранена комната:", room.ID, room.Name)
-	rooms, err := svc.List(ctx)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Всего комнат:", len(rooms))
 	return nil
 }
